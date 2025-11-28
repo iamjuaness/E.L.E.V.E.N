@@ -6,6 +6,13 @@ pyaudio
 psutil
 pywin32
 pyautogui
+google-generativeai
+SpeechRecognition
+pyttsx3
+gTTS
+pyaudio
+psutil
+pywin32
 python-dotenv
 selenium
 requests
@@ -14,4 +21,6 @@ sounddevice
 numpy
 scipy
 edge-tts
+pyautogui
+Pillow
 pygame

@@ -11,7 +11,8 @@ class IntentClassifier:
         "abrir", "abre", "cerrar", "cierra", "ejecutar", "ejecuta", "buscar", "busca", 
         "reproducir", "pon", "volumen", "brillo", "apagar", "reiniciar", "carpeta", "archivo",
         "open", "close", "run", "search", "play", "volume", "shutdown",
-        "configurar", "ajustar", "humor", "sarcasmo", "sinceridad", "configure", "set"
+        "configurar", "ajustar", "humor", "sarcasmo", "sinceridad", "configure", "set",
+        "ver", "mira", "pantalla", "screen", "look", "see"
     ]
     
     def __init__(self, llm_client):

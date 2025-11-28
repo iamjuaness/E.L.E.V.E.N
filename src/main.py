@@ -24,6 +24,7 @@ def main():
         from src.system.windows_controller import WindowsController
         from src.capabilities.system_info import SystemInfo
         from src.capabilities.web_browser import WebBrowser
+        from src.capabilities.vision import VisionSystem
         
         audio = AudioManager()
         llm = LLMClient()
@@ -32,6 +33,7 @@ def main():
         windows = WindowsController()
         sys_info = SystemInfo()
         browser = WebBrowser()
+        vision = VisionSystem(llm)
         
         logger.info(f"{Settings.ASSISTANT_NAME} is ready and listening.")
         audio.speak(f"Hola, soy {Settings.ASSISTANT_NAME}. Estoy listo.")
@@ -79,6 +81,11 @@ def main():
                                 response_text = "Silenciando"
                         elif cmd_name == "system_info":
                             response_text = sys_info.get_system_summary()
+                        elif cmd_name == "analyze_screen":
+                            # Vision capability
+                            prompt = params if params else "Describe lo que ves en mi pantalla."
+                            audio.speak("Déjame ver...")
+                            response_text = vision.analyze_screen(prompt)
                         else:
                             # Unknown LLM command
                             response_text = "No estoy seguro de cómo ejecutar ese comando."
@@ -88,7 +95,11 @@ def main():
                         cmd = intent.get("keyword", "")
                         logger.info(f"Executing Legacy command: {cmd}")
                         
-                        if any(k in cmd for k in ["abrir", "abre", "open"]):
+                        if any(k in cmd for k in ["ver", "mira", "pantalla", "screen"]):
+                             audio.speak("Analizando pantalla...")
+                             response_text = vision.analyze_screen("Describe detalladamente qué hay en mi pantalla.")
+                        
+                        elif any(k in cmd for k in ["abrir", "abre", "open"]):
                             target = user_text.replace("abrir", "").replace("abre", "").replace("open", "").strip()
                             if "google" in target:
                                 response_text = browser.open_url("google.com")

@@ -101,6 +101,18 @@ class LLMClient:
             logger.error(f"Error generating response from LLM: {e}")
             return "Lo siento, tuve un problema al procesar tu solicitud."
 
+    def generate_vision_response(self, prompt, image):
+        """
+        Generate a response based on text prompt and image.
+        """
+        try:
+            # Gemini supports [prompt, image] list for input
+            response = self.model.generate_content([prompt, image])
+            return response.text
+        except Exception as e:
+            logger.error(f"Error in vision generation: {e}")
+            raise e
+
     def analyze_intent(self, text):
         """
         Analyze text to determine if it's a command or chat.
@@ -116,6 +128,7 @@ class LLMClient:
         - search_web(query): Search Google
         - system_control(action): volume_up, volume_down, mute
         - system_info(): Get CPU/RAM status
+        - analyze_screen(prompt): Analyze screen content (e.g., "what is on my screen", "explain this error")
         
         Return ONLY a JSON object in this format:
         {{
@@ -126,7 +139,7 @@ class LLMClient:
         }}
         
         Example 1: "I want to write some code" -> {{"type": "command", "command": "open_app", "parameters": "vscode", "confidence": 0.9}}
-        Example 2: "Who is the president?" -> {{"type": "chat", "confidence": 1.0}}
+        Example 2: "What do you see?" -> {{"type": "command", "command": "analyze_screen", "parameters": "Describe what you see", "confidence": 0.95}}
         """
         
         try:

@@ -8,6 +8,7 @@ All notable changes to the **ELEVEN** project will be documented in this file.
 
 - **Neural Voice**: Integrated `edge-tts` for high-quality, natural-sounding speech (Spanish/English).
 - **Natural Interaction**: Implemented LLM-based intent classification. You can now give natural instructions (e.g., "I want to code") instead of rigid commands.
+- **Vision**: Added screen analysis capabilities using `Gemini 2.0 Flash` and `pyautogui`. You can ask "What is on my screen?" or "Explain this error".
 - **Long-term Memory**: Added SQLite database (`src/brain/memory.py`) to store conversation history and user preferences across sessions.
 - **Sound Effects (SFX)**: Added auditory feedback for "Listening" and "Processing" states using `pygame`.
 - **Dynamic Personality**: Added personality sliders (Humor, Sarcasm, Sincerity) configurable via voice commands (e.g., "Set humor to 80%").
