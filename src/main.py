@@ -35,14 +35,25 @@ def main():
         browser = WebBrowser()
         vision = VisionSystem(llm)
         
-        logger.info(f"{Settings.ASSISTANT_NAME} is ready and listening.")
-        audio.speak(f"Hola, soy {Settings.ASSISTANT_NAME}. Estoy listo.")
+        # Initialize Wake Word
+        from src.audio.wake_word import WakeWordListener
+        wake_word = WakeWordListener()
+        
+        logger.info(f"{Settings.ASSISTANT_NAME} is ready. Say 'Hey {Settings.ASSISTANT_NAME}' to start.")
+        audio.speak(f"Hola, soy {Settings.ASSISTANT_NAME}. Di mi nombre para activarme.")
         
         # Main loop
         while True:
             try:
-                # 1. Listen for input
-                # audio.play_sound("listening") # Optional: might be too repetitive
+                # 0. Wait for Wake Word
+                if not wake_word.listen_for_wake_word():
+                    continue
+                
+                # 1. Wake up!
+                audio.play_sound("listening")
+                
+                # 2. Listen for actual command
+                logger.info("Listening for command...")
                 user_text = audio.listen()
                 
                 if not user_text:
