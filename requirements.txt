@@ -1,0 +1,17 @@
+google-generativeai
+SpeechRecognition
+pyttsx3
+gTTS
+pyaudio
+psutil
+pywin32
+pyautogui
+python-dotenv
+selenium
+requests
+colorama
+sounddevice
+numpy
+scipy
+edge-tts
+pygame
