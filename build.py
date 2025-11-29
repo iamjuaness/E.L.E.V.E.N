@@ -40,16 +40,16 @@ def build():
         print(f"Running command: {' '.join(cmd)}")
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
         print(result.stdout)
-        print(f"\n✅ Build complete! Check dist/{exe_name}.exe")
+        print(f"\n[SUCCESS] Build complete! Check dist/{exe_name}.exe")
         return 0
     except subprocess.CalledProcessError as e:
-        print(f"\n❌ Build failed with exit code {e.returncode}")
+        print(f"\n[ERROR] Build failed with exit code {e.returncode}")
         print(f"Error output:\n{e.stderr}")
         if e.stdout:
             print(f"Standard output:\n{e.stdout}")
         return e.returncode
     except Exception as e:
-        print(f"\n❌ Unexpected error during build: {e}")
+        print(f"\n[ERROR] Unexpected error during build: {e}")
         return 1
 
 if __name__ == "__main__":
