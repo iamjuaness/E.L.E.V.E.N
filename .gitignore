@@ -35,3 +35,11 @@ ENV/
 # Logs
 *.log
 logs/
+
+# Memory
+memory.db
+
+# PyInstaller
+build/
+dist/
+*.spec

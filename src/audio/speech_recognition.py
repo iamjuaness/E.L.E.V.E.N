@@ -38,3 +38,24 @@ class SpeechRecognizer:
         except Exception as e:
             logger.error(f"Error in speech recognition: {e}")
             return None
+    
+    def listen_for_interruption(self):
+        """Quick listen to detect if user is trying to interrupt (non-blocking)"""
+        try:
+            with self.microphone as source:
+                # Very short timeout to quickly detect speech start
+                # phrase_time_limit=2 ensures we don't record long sentences for simple stop commands
+                audio = self.recognizer.listen(source, timeout=0.3, phrase_time_limit=2)
+                
+            # Try to recognize what was said
+            # show_all=False ensures we get just the text
+            text = self.recognizer.recognize_google(audio, language=Settings.LANGUAGE)
+            logger.info(f"Interruption detected: {text}")
+            return text.lower()
+            
+        except (sr.WaitTimeoutError, sr.UnknownValueError):
+            return None
+        except Exception as e:
+            # Don't log every timeout/error to avoid spamming logs during monitoring
+            return None
+

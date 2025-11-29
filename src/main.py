@@ -1,18 +1,21 @@
 import sys
 import os
 import time
+import threading
 
 # Add project root to sys.path to allow running as script
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.config.settings import Settings
 from src.utils.logger import logger
+from src.gui.interface import SettingsGUI
 
-def main():
-    """Main entry point for ELEVEN"""
+def run_assistant():
+    """
+    Main assistant logic to be run in a separate thread.
+    """
     try:
         logger.info(f"Starting {Settings.ASSISTANT_NAME}...")
-        Settings.validate()
         
         logger.info("Initializing components...")
         
@@ -25,6 +28,8 @@ def main():
         from src.capabilities.system_info import SystemInfo
         from src.capabilities.web_browser import WebBrowser
         from src.capabilities.vision import VisionSystem
+        from src.system.file_manager import FileSystemManager
+        from src.audio.wake_word import WakeWordListener
         
         audio = AudioManager()
         llm = LLMClient()
@@ -34,32 +39,52 @@ def main():
         sys_info = SystemInfo()
         browser = WebBrowser()
         vision = VisionSystem(llm)
-        
-        # Initialize Wake Word
-        from src.audio.wake_word import WakeWordListener
+        file_manager = FileSystemManager()
         wake_word = WakeWordListener()
         
+        conversation_active = False
+        last_interaction = time.time()
+        
         logger.info(f"{Settings.ASSISTANT_NAME} is ready. Say 'Hey {Settings.ASSISTANT_NAME}' to start.")
-        audio.speak(f"Hola, soy {Settings.ASSISTANT_NAME}. Di mi nombre para activarme.")
         
         # Main loop
         while True:
             try:
                 # 0. Wait for Wake Word
-                if not wake_word.listen_for_wake_word():
-                    continue
+                if not conversation_active:
+                    logger.info("Esperando wake word inicial...")
+                    if not wake_word.listen_for_wake_word():
+                        continue
+                    conversation_active = True
+                    last_interaction = time.time()  # Reset timer on activation
+                    audio.speak("Activado. ¿En qué puedo ayudarte?")
+                else:
+                    logger.info("Escuchando comando continuo...")
                 
-                # 1. Wake up!
+                # 1. Wake up sound
                 audio.play_sound("listening")
                 
                 # 2. Listen for actual command
-                logger.info("Listening for command...")
                 user_text = audio.listen()
-                
                 if not user_text:
                     continue
                 
-                audio.play_sound("processing")    
+                # Check for sleep command BEFORE timeout
+                if any(word in user_text.lower() for word in ["duerme", "duérmete", "sleep", "descansa"]):
+                    conversation_active = False
+                    audio.speak("Entendido. Me duermo.")
+                    continue
+
+                # Check for SHUTDOWN command
+                if any(word in user_text.lower() for word in ["apagar sistema", "apágate", "cerrar programa", "shutdown system", "terminate"]):
+                    audio.speak("Apagando sistemas. Hasta luego.")
+                    logger.info("Shutdown command received.")
+                    os._exit(0) # Force exit
+                
+                # Update interaction time AFTER receiving input
+                last_interaction = time.time()
+                
+                audio.play_sound("processing")
                 logger.info(f"User said: {user_text}")
                 
                 # 2. Classify intent
@@ -97,6 +122,14 @@ def main():
                             prompt = params if params else "Describe lo que ves en mi pantalla."
                             audio.speak("Déjame ver...")
                             response_text = vision.analyze_screen(prompt)
+                        elif cmd_name == "open_folder":
+                            response_text = file_manager.open_folder(params)
+                        elif cmd_name == "create_folder":
+                            # Parse location if provided
+                            parts = params.split(" en ") if " en " in params else [params, None]
+                            response_text = file_manager.create_folder(parts[0], parts[1] if len(parts) > 1 else None)
+                        elif cmd_name == "open_file":
+                            response_text = file_manager.open_file(params)
                         else:
                             # Unknown LLM command
                             response_text = "No estoy seguro de cómo ejecutar ese comando."
@@ -134,7 +167,7 @@ def main():
                                 
                         elif "sistema" in cmd or "system" in cmd:
                             response_text = sys_info.get_system_summary()
-    
+                            
                         elif any(k in cmd for k in ["configurar", "ajustar", "humor", "sarcasmo", "sinceridad", "set"]):
                             # Parse personality command
                             import re
@@ -161,29 +194,94 @@ def main():
                                 response_text = "No entendí qué parámetro ajustar."
                         
                         else:
-                            # Fallback if keyword detected but no handler matched
-                            context = sys_info.get_system_summary()
-                            response_text = llm.generate_response(user_text, context=context)
-                        
-                else:
-                    # Chat intent
-                    context = sys_info.get_system_summary()
-                    response_text = llm.generate_response(user_text, context=context)
+                            # Fallback: keyword detected but no handler matched - use LLM
+                            logger.info("No specific handler found, using LLM for response")
+                            response_text = llm.generate_response(user_text)
                 
-                # 4. Speak response
+                elif intent["type"] == "chat":
+                    # General conversation - use LLM to think and respond
+                    logger.info("Chat mode: Using LLM for intelligent response")
+                    response_text = llm.generate_response(user_text)
+                
+                else:
+                    # Unknown intent type - default to LLM
+                    logger.warning(f"Unknown intent type: {intent.get('type')}, defaulting to chat")
+                    response_text = llm.generate_response(user_text)
+                
+                # 4. Respond with interruption support
                 if response_text:
+                    from threading import Thread, Event
+                    
+                    interruption_detected = Event()
+                    new_command = [None]  # Use list to allow modification in thread
+                    
+                    def monitor_interruption():
+                        """Monitor for user interruptions while speaking"""
+                        import time
+                        while audio.is_speaking() and not interruption_detected.is_set():
+                            # Check for interruption every 0.1 seconds for faster response
+                            time.sleep(0.1)
+                            interrupt_text = audio.recognizer.listen_for_interruption()
+                            if interrupt_text:
+                                # Check for stop commands
+                                if any(word in interrupt_text for word in ["detente", "para", "stop", "cállate", "espera", "silencio"]):
+                                    logger.info("Stop command detected, halting speech")
+                                    audio.stop_speaking()
+                                    interruption_detected.set()
+                                    break
+                                else:
+                                    # New command while speaking
+                                    logger.info(f"New command while speaking: {interrupt_text}")
+                                    audio.stop_speaking()
+                                    new_command[0] = interrupt_text
+                                    interruption_detected.set()
+                                    break
+                    
+                    # Start monitoring in background
+                    monitor_thread = Thread(target=monitor_interruption, daemon=True)
+                    monitor_thread.start()
+                    
+                    # Speak the response
                     audio.speak(response_text)
+                    logger.info(f"Assistant: {response_text}")
+                    
+                    # Wait for monitoring to finish
+                    monitor_thread.join(timeout=0.5)
+                    
+                    # If there was a new command during speech, process it
+                    if new_command[0]:
+                        user_text = new_command[0]
+                        continue  # Go back to process the new command
                 
             except KeyboardInterrupt:
-                logger.info("Stopping by user request...")
+                logger.info("Interrupted by user")
                 break
             except Exception as e:
                 logger.error(f"Error in main loop: {e}")
-                audio.speak("Lo siento, ocurrió un error.")
+                audio.speak("Lo siento, ocurrió un error. Intenta de nuevo.")
                 
     except Exception as e:
         logger.critical(f"Critical error starting application: {e}")
-        sys.exit(1)
+
+def main():
+    """Main entry point for ELEVEN"""
+    # Load settings FIRST so GUI gets correct values
+    try:
+        Settings.load()
+        Settings.validate()
+    except Exception as e:
+        logger.error(f"Error loading settings on startup: {e}")
+
+    # Check if GUI is enabled (default to True now)
+    enable_gui = os.getenv("ENABLE_GUI", "true").lower() == "true"
+    
+    if enable_gui:
+        logger.info("Starting in GUI mode...")
+        app = SettingsGUI(on_start_assistant=run_assistant)
+        app.run()
+    else:
+        logger.info("Starting in Headless mode...")
+        run_assistant()
 
 if __name__ == "__main__":
     main()

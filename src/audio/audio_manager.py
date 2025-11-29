@@ -20,3 +20,12 @@ class AudioManager:
     def play_sound(self, name):
         """Play a sound effect"""
         self.sfx.play(name)
+    
+    def stop_speaking(self):
+        """Stop current speech"""
+        self.tts.stop()
+    
+    def is_speaking(self):
+        """Check if currently speaking"""
+        return self.tts.is_speaking()
+

@@ -1,30 +1,23 @@
-# Changelog
+- Fixed `ModuleNotFoundError` for `src` imports.
+- Improved application launching logic for Windows.
 
-All notable changes to the **ELEVEN** project will be documented in this file.
-
-## [0.2.0] - 2025-11-28 - JARVIS Evolution Phase
+## [1.1.0] - 2025-11-29 - Enhanced GUI & Persistence
 
 ### Added
 
-- **Neural Voice**: Integrated `edge-tts` for high-quality, natural-sounding speech (Spanish/English).
-- **Natural Interaction**: Implemented LLM-based intent classification. You can now give natural instructions (e.g., "I want to code") instead of rigid commands.
-- **Vision**: Added screen analysis capabilities using `Gemini 2.0 Flash` and `pyautogui`. You can ask "What is on my screen?" or "Explain this error".
-- **Long-term Memory**: Added SQLite database (`src/brain/memory.py`) to store conversation history and user preferences across sessions.
-- **Sound Effects (SFX)**: Added auditory feedback for "Listening" and "Processing" states using `pygame`.
-- **Dynamic Personality**: Added personality sliders (Humor, Sarcasm, Sincerity) configurable via voice commands (e.g., "Set humor to 80%").
-- **Model Fallback**: Implemented robust connection logic to try multiple Gemini models (`gemini-2.0-flash`, `gemini-1.5-flash`, etc.) if one fails.
+- **SQLite Database**: Settings are now persisted in `memory.db` across restarts.
+- **System Tray**: Application can now run in background ("Ocultar en Bandeja").
+- **Wake Word**: Added "Once" as an alternative wake word.
+- **Shutdown Command**: Added "Apagar sistema" / "Shutdown system" to fully terminate the app.
+- **Model Fallback**: Automatically switches Gemini models if API quota is exceeded (429 Error).
+- **Restart Button**: Added button in GUI to restart application.
+- **Build Script**: `build.py` to generate versioned executables (e.g., `ELEVEN_v1.1.0.exe`).
 
 ### Changed
 
-- **LLM Client**: Upgraded to use `gemini-2.0-flash` for faster and smarter responses.
-- **Main Loop**: Refactored `main.py` to handle asynchronous audio and complex intent logic safely.
-- **Audio Manager**: Replaced `pyttsx3` with `NeuralTTS` engine.
-
-### Fixed
-
-- Resolved 404 connection errors with Gemini API by implementing model fallback.
-- Fixed `ModuleNotFoundError` for `src` imports.
-- Improved application launching logic for Windows.
+- **GUI Architecture**: Refactored to run on the main thread for stability.
+- **Console Output**: Redirected logs to a new "Consola" tab in the GUI.
+- **Speech Interruption**: Optimized detection speed for "stop" commands.
 
 ## [0.1.0] - 2025-11-28 - Initial Release
 

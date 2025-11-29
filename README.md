@@ -1,55 +1,131 @@
-# ELEVEN - Voice AI Assistant
+# ELEVEN - AI Voice Assistant
 
-Un asistente de voz inteligente tipo JARVIS para Windows, potenciado por Google Gemini.
+## Descripción
 
-## 🚀 Instalación
+ELEVEN es un asistente de voz avanzado con capacidades de IA, similar a JARVIS. Utiliza Gemini 2.0 Flash para procesamiento de lenguaje natural, reconocimiento de voz, síntesis de voz neural, y control completo del sistema.
 
-1. **Requisitos Previos**:
+## Características Principales
 
-   - Python 3.10 o superior
-   - Micrófono y altavoces
+- 🎙️ **Wake Word**: Activación manos libres con "Hey Eleven"
+- 🧠 **IA Avanzada**: Gemini 2.0 Flash para comprensión natural
+- 🗣️ **Voz Neural**: EdgeTTS con múltiples voces en español e inglés
+- 👁️ **Visión**: Análisis de pantalla con IA
+- 💾 **Memoria**: Historial de conversaciones persistente
+- 📁 **Sistema de Archivos**: Búsqueda inteligente de archivos/carpetas
+- ⚙️ **Configuración GUI**: Panel de ajustes con sliders de personalidad
+- 🎭 **Personalidad Dinámica**: Ajusta humor, sarcasmo, sinceridad
 
-2. **Configuración**:
+## Instalación
 
-   ```bash
-   # 1. Crear entorno virtual (opcional pero recomendado)
-   python -m venv venv
-   .\venv\Scripts\activate
+### Requisitos
 
-   # 2. Instalar dependencias
-   pip install -r requirements.txt
+- Python 3.8+
+- Windows 10/11
+- Gemini API Key (obtener en [Google AI Studio](https://makersuite.google.com/app/apikey))
 
-   # 3. Configurar variables de entorno
-   copy .env.example .env
-   ```
+### Pasos
 
-3. **API Key**:
-   - Abre el archivo `.env` y pega tu API Key de Google Gemini en `GEMINI_API_KEY`.
-   - Puedes obtenerla gratis en [Google AI Studio](https://aistudio.google.com/).
+1. Clona el repositorio:
 
-## 🎮 Uso
+```bash
+git clone https://github.com/iamjuaness/E.L.E.V.E.N.git
+cd E.L.E.V.E.N
+```
 
-Ejecuta el asistente:
+2. Crea un entorno virtual:
+
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+
+3. Instala dependencias:
+
+```bash
+pip install -r requirements.txt
+```
+
+4. Configura tu API Key:
+
+   - Copia `.env.example` a `.env`
+   - Edita `.env` y añade tu `GEMINI_API_KEY`
+
+5. Ejecuta ELEVEN:
 
 ```bash
 python src/main.py
 ```
 
-Di **"Hey ELEVEN"** (o simplemente empieza a hablar si el micrófono está activo) y prueba comandos como:
+## Uso
 
-- "Abre Google y busca noticias de IA"
-- "¿Qué hora es?"
-- "Sube el volumen"
-- "¿Cómo está el uso de mi CPU?"
-- "Abre el bloc de notas"
+### Comandos de Voz
 
-## 🛠️ Estructura del Proyecto
+- **Activación**: "Hey Eleven" o "Oye Eleven"
+- **Búsqueda de archivos**: "Abre la carpeta documentos"
+- **Crear carpetas**: "Crea una carpeta llamada test en el escritorio"
+- **Análisis de pantalla**: "¿Qué ves en mi pantalla?"
+- **Control de sistema**: "Sube el volumen"
+- **Búsqueda web**: "Busca en Google..."
 
-- `src/brain`: Lógica de inteligencia (LLM, Intenciones)
-- `src/audio`: Reconocimiento de voz y TTS
-- `src/system`: Control del sistema operativo
-- `src/capabilities`: Habilidades específicas (Web, Info Sistema)
+### Panel de Configuración
 
-## ⚠️ Nota de Seguridad
+Al ejecutar `python src/main.py`, se abre automáticamente un panel donde puedes configurar:
 
-Por defecto, el modo seguro está activado (`SAFE_MODE=true`). Comandos peligrosos como borrar archivos masivamente serán bloqueados.
+- API Key de Gemini
+- Idioma (Español/Inglés)
+- Voz (múltiples opciones)
+- Nombre del asistente
+- Sliders de personalidad
+
+## Estructura del Proyecto
+
+```
+E.L.E.V.E.N/
+├── src/
+│   ├── audio/          # Sistema de audio (TTS, reconocimiento)
+│   ├── brain/          # IA y procesamiento (LLM, memoria)
+│   ├── capabilities/   # Capacidades (visión, web, sistema)
+│   ├── config/         # Configuración
+│   ├── gui/            # Interfaz gráfica
+│   ├── system/         # Control del sistema
+│   └── utils/          # Utilidades
+├── logs/               # Archivos de log
+├── requirements.txt    # Dependencias
+└── README.md
+```
+
+## Desarrollo
+
+### Ejecutar desde código
+
+```bash
+python src/main.py
+```
+
+### Ejecutar como .exe
+
+Descarga la última versión desde [Releases](https://github.com/iamjuaness/E.L.E.V.E.N/releases)
+
+## Contribuir
+
+Las contribuciones son bienvenidas. Por favor:
+
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+## Licencia
+
+MIT License - ver [LICENSE](LICENSE) para más detalles
+
+## Autor
+
+**Juan Esteban** - [@iamjuaness](https://github.com/iamjuaness)
+
+## Agradecimientos
+
+- Google Gemini AI
+- EdgeTTS
+- CustomTkinter

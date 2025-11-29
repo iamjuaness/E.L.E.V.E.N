@@ -10,7 +10,7 @@ class WakeWordListener:
     def __init__(self):
         self.recognizer = sr.Recognizer()
         self.microphone = sr.Microphone()
-        self.wake_words = [Settings.ASSISTANT_NAME.lower(), "hey " + Settings.ASSISTANT_NAME.lower(), "oye " + Settings.ASSISTANT_NAME.lower()]
+        self.wake_words = [Settings.ASSISTANT_NAME.lower(), "hey " + Settings.ASSISTANT_NAME.lower(), "oye " + Settings.ASSISTANT_NAME.lower(), "once"]
         
         # Adjust for ambient noise on init
         with self.microphone as source:

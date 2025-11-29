@@ -24,3 +24,5 @@ edge-tts
 pyautogui
 Pillow
 pygame
+customtkinter
+pyinstaller

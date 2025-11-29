@@ -8,9 +8,8 @@ from src.utils.logger import logger
 
 class NeuralTTS:
     def __init__(self):
-        self.voice = "es-ES-AlvaroNeural" # Default Spanish voice
-        if "en" in Settings.LANGUAGE.lower():
-            self.voice = "en-US-ChristopherNeural"
+        self.voice = Settings.VOICE_NAME
+        logger.info(f"NeuralTTS initialized with voice: {self.voice}")
             
         # Initialize pygame mixer for playback
         try:
@@ -61,3 +60,21 @@ class NeuralTTS:
                     os.remove(temp_file)
             except Exception as e:
                 logger.warning(f"Could not remove temp file: {e}")
+    
+    def stop(self):
+        """Stop current speech immediately"""
+        try:
+            if pygame.mixer.music.get_busy():
+                pygame.mixer.music.stop()
+                pygame.mixer.music.unload()
+                logger.info("Speech stopped")
+        except Exception as e:
+            logger.error(f"Error stopping speech: {e}")
+    
+    def is_speaking(self):
+        """Check if currently speaking"""
+        try:
+            return pygame.mixer.music.get_busy()
+        except:
+            return False
+

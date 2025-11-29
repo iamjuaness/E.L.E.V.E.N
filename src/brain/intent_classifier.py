@@ -24,16 +24,10 @@ class IntentClassifier:
         Returns:
             dict: {'type': 'command'|'chat', 'confidence': float, 'action': str}
         """
-        text = text.lower()
+        text_lower = text.lower()
         
-        # 1. Check for configuration commands (fast path)
-        if any(k in text for k in ["configurar", "ajustar", "humor", "sarcasmo", "sinceridad", "set"]):
-             return {"type": "config", "confidence": 1.0}
-
-        # 2. LLM Classification (Smarter, for natural language)
-        # We try this first for complex queries, or we can use it as fallback.
-        # Given the user wants "natural instructions", we prioritize LLM for ambiguous cases.
-        
+        # 1. LLM Classification FIRST (Smarter, handles natural language)
+        # This allows the assistant to understand requests like "cuéntame un chiste"
         try:
             logger.info("Analyzing intent with LLM...")
             analysis = self.llm.analyze_intent(text)
@@ -44,17 +38,19 @@ class IntentClassifier:
                 analysis = analysis.replace("```json", "").replace("```", "").strip()
                 
                 result = json.loads(analysis)
-                if result.get("type") == "command":
-                    logger.info(f"LLM identified command: {result}")
-                    return result
+                logger.info(f"LLM classification result: {result}")
+                return result
+                
         except Exception as e:
-            logger.error(f"LLM classification failed: {e}")
+            logger.error(f"LLM classification failed: {e}, falling back to keyword matching")
         
-        # 3. Fallback to Keyword Matching (Fast but dumb)
+        # 2. Fallback to Keyword Matching (only if LLM fails)
         for keyword in self.SYSTEM_KEYWORDS:
-            if keyword in text:
+            if keyword in text_lower:
                 logger.info(f"Intent classified as COMMAND via keyword: {keyword}")
-                return {"type": "command", "confidence": 0.8, "keyword": keyword}
+                return {"type": "command", "confidence": 0.7, "keyword": keyword}
     
-        logger.info("Intent classified as CHAT")
+        # 3. Default to chat if nothing else matches
+        logger.info("Intent classified as CHAT (default)")
         return {"type": "chat", "confidence": 0.9}
+
