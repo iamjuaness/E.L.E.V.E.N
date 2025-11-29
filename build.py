@@ -22,7 +22,8 @@ def build():
         "--hidden-import", "PIL._tkinter_finder",
         "--hidden-import", "PIL.Image",
         "--hidden-import", "PIL.ImageDraw",
-        "--collect-all", "pystray",
+        "--hidden-import", "six",
+        "--copy-metadata", "pystray",
         "src/main.py"
     ]
     

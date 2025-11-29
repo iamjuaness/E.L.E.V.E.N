@@ -6,7 +6,7 @@ import sys
 import threading
 import tkinter as tk
 from PIL import Image
-import pystray
+
 
 class SettingsGUI:
     """
@@ -251,6 +251,16 @@ class SettingsGUI:
         
     def hide_to_tray(self):
         """Hide window and show tray icon"""
+        try:
+            import pystray
+        except ImportError:
+            self.status_label.configure(
+                text="❌ Error: pystray no está disponible",
+                text_color="red"
+            )
+            logger.error("pystray module not available")
+            return
+            
         self.root.withdraw()
         
         # Create a simple icon image (a colored square if no file)
@@ -274,6 +284,7 @@ class SettingsGUI:
         
         # Run tray icon in a separate thread to not block
         threading.Thread(target=self.tray_icon.run, daemon=True).start()
+
         
     def on_closing(self):
         """Handle window closing event"""

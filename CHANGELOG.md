@@ -5,10 +5,11 @@
 ### Fixed
 
 - **GitHub Actions Build Workflow**: Fixed executable upload failure by replacing wildcard pattern with dynamic filename resolution
-- **PyInstaller Dependencies**: Added comprehensive hidden imports for `pystray` module to fix `ModuleNotFoundError` in built executables
-  - Added `pystray._win32` for Windows-specific functionality
-  - Added PIL dependencies: `PIL._tkinter_finder`, `PIL.Image`, `PIL.ImageDraw`
-  - Added `--collect-all pystray` to ensure all pystray files are included
+- **PyInstaller Dependencies**: Fixed `ModuleNotFoundError` for `pystray` module in built executables
+  - Made `pystray` import conditional (lazy loading) to prevent startup crashes
+  - Added comprehensive hidden imports: `pystray._win32`, `PIL._tkinter_finder`, `PIL.Image`, `PIL.ImageDraw`, `six`
+  - Added `--copy-metadata pystray` to ensure metadata is included
+  - System tray functionality now gracefully handles missing pystray module
 
 ### Changed
 
