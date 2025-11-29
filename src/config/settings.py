@@ -8,7 +8,7 @@ load_dotenv()
 
 class Settings:
     # General
-    VERSION = "1.1.1"
+    VERSION = "1.1.2"
     ASSISTANT_NAME = os.getenv("ASSISTANT_NAME", "ELEVEN")
     LANGUAGE = os.getenv("LANGUAGE", "es-ES")
     

@@ -81,6 +81,31 @@ def run_assistant():
                     logger.info("Shutdown command received.")
                     os._exit(0) # Force exit
                 
+                # Check for SHOW GUI command (when running in headless mode)
+                if any(phrase in user_text.lower() for phrase in ["mostrar interfaz", "muestra la interfaz", "abre la configuración", "show interface", "open settings"]):
+                    audio.speak("Abriendo interfaz de configuración.")
+                    logger.info("Show GUI command received.")
+                    try:
+                        import subprocess
+                        
+                        # Determine the correct command based on execution mode
+                        if getattr(sys, 'frozen', False):
+                            # Running as compiled executable
+                            exe_path = sys.executable
+                            cmd = [exe_path, "--show-gui"]
+                        else:
+                            # Running as Python script
+                            script_path = os.path.abspath(sys.argv[0])
+                            cmd = [sys.executable, script_path, "--show-gui"]
+                        
+                        logger.info(f"Launching GUI with command: {cmd}")
+                        subprocess.Popen(cmd)
+                        audio.speak("Interfaz abierta.")
+                    except Exception as e:
+                        logger.error(f"Error opening GUI: {e}")
+                        audio.speak("Lo siento, no pude abrir la interfaz.")
+                    continue
+                
                 # Update interaction time AFTER receiving input
                 last_interaction = time.time()
                 
@@ -265,6 +290,22 @@ def run_assistant():
 
 def main():
     """Main entry point for ELEVEN"""
+    import argparse
+    
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description='ELEVEN Voice Assistant')
+    parser.add_argument(
+        '--no-gui', '--headless',
+        action='store_true',
+        help='Run without showing the GUI (headless mode)'
+    )
+    parser.add_argument(
+        '--show-gui',
+        action='store_true',
+        help='Explicitly show the GUI (default behavior)'
+    )
+    args = parser.parse_args()
+    
     # Load settings FIRST so GUI gets correct values
     try:
         Settings.load()
@@ -272,16 +313,31 @@ def main():
     except Exception as e:
         logger.error(f"Error loading settings on startup: {e}")
 
-    # Check if GUI is enabled (default to True now)
-    enable_gui = os.getenv("ENABLE_GUI", "true").lower() == "true"
+    # Determine if GUI should be shown
+    # Priority: command-line args > environment variable > default (True)
+    if args.no_gui:
+        enable_gui = False
+        logger.info("Starting in Headless mode (--no-gui flag)...")
+    elif args.show_gui:
+        enable_gui = True
+        logger.info("Starting in GUI mode (--show-gui flag)...")
+    else:
+        # Check environment variable (for backward compatibility)
+        enable_gui = os.getenv("ENABLE_GUI", "true").lower() == "true"
     
     if enable_gui:
-        logger.info("Starting in GUI mode...")
-        app = SettingsGUI(on_start_assistant=run_assistant)
+        logger.info("Starting with GUI...")
+        # If --show-gui was explicitly used, don't auto-start assistant
+        # (it's likely already running in another instance)
+        if args.show_gui:
+            app = SettingsGUI(on_start_assistant=None)
+        else:
+            app = SettingsGUI(on_start_assistant=run_assistant)
         app.run()
     else:
-        logger.info("Starting in Headless mode...")
+        logger.info("Starting in Headless mode (no GUI)...")
         run_assistant()
 
 if __name__ == "__main__":
     main()
+

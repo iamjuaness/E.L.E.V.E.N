@@ -165,6 +165,35 @@ class SettingsGUI:
         self.sincerity_slider = create_slider("Sinceridad:", "sincerity")
         self.professionalism_slider = create_slider("Profesionalismo:", "professionalism")
         
+        # Auto-start Section
+        autostart_frame = ctk.CTkFrame(scroll_frame)
+        autostart_frame.pack(fill="x", pady=10)
+        
+        ctk.CTkLabel(autostart_frame, text="Inicio Automático:", font=("Segoe UI", 16, "bold")).pack(anchor="w", padx=10, pady=10)
+        
+        # Import startup manager
+        from src.utils import startup_manager
+        
+        self.autostart_var = ctk.BooleanVar(value=startup_manager.is_startup_enabled())
+        autostart_check = ctk.CTkCheckBox(
+            autostart_frame,
+            text="Iniciar automáticamente con Windows (en segundo plano)",
+            variable=self.autostart_var,
+            command=self.toggle_autostart,
+            font=("Segoe UI", 12)
+        )
+        autostart_check.pack(padx=10, pady=5, anchor="w")
+        
+        # Info label
+        info_label = ctk.CTkLabel(
+            autostart_frame,
+            text="ℹ️ La aplicación se iniciará en modo segundo plano. Usa el comando 'mostrar interfaz' para ver la configuración.",
+            font=("Segoe UI", 10),
+            text_color="gray",
+            wraplength=500
+        )
+        info_label.pack(padx=10, pady=5, anchor="w")
+        
         # Buttons Frame
         btn_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
         btn_frame.pack(pady=20, fill="x")
@@ -240,6 +269,47 @@ class SettingsGUI:
         except Exception as e:
             self.status_label.configure(text=f"❌ Error: {e}", text_color="red")
             logger.error(f"Error saving settings: {e}")
+
+    def toggle_autostart(self):
+        """Toggle Windows auto-start"""
+        from src.utils import startup_manager
+        
+        try:
+            if self.autostart_var.get():
+                # Enable auto-start
+                if startup_manager.enable_startup():
+                    self.status_label.configure(
+                        text="✅ Auto-inicio activado. ELEVEN se iniciará con Windows.",
+                        text_color="green"
+                    )
+                    logger.info("Auto-start enabled")
+                else:
+                    self.status_label.configure(
+                        text="❌ Error al activar auto-inicio",
+                        text_color="red"
+                    )
+                    self.autostart_var.set(False)
+            else:
+                # Disable auto-start
+                if startup_manager.disable_startup():
+                    self.status_label.configure(
+                        text="✅ Auto-inicio desactivado",
+                        text_color="green"
+                    )
+                    logger.info("Auto-start disabled")
+                else:
+                    self.status_label.configure(
+                        text="❌ Error al desactivar auto-inicio",
+                        text_color="red"
+                    )
+                    self.autostart_var.set(True)
+        except Exception as e:
+            self.status_label.configure(
+                text=f"❌ Error: {e}",
+                text_color="red"
+            )
+            logger.error(f"Error toggling auto-start: {e}")
+
 
     def restart_app(self):
         """Restart the entire application"""

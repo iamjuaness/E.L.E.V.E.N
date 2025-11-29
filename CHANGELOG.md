@@ -1,20 +1,45 @@
 # Changelog
 
+## [1.1.2] - 2025-11-29
+
+### Added
+
+- **Windows Auto-Start**: Application can now start automatically with Windows
+  - New `startup_manager` module to manage Windows Registry entries
+  - GUI checkbox to enable/disable auto-start
+  - Auto-start runs in headless mode (no GUI) by default
+- **Headless Mode**: Command-line arguments to control GUI visibility
+  - `--no-gui` or `--headless`: Run without showing the GUI
+  - `--show-gui`: Explicitly show the GUI
+  - Perfect for running as a background service
+- **Voice Command to Show GUI**: New voice commands to open the interface from headless mode
+  - "Mostrar interfaz" / "Muestra la interfaz"
+  - "Abre la configuración" / "Open settings"
+  - "Show interface"
+
+### Changed
+
+- Improved command-line argument handling with argparse
+- **Improved Interruption Detection**: Increased timeout from 0.3s to 0.5s for better "stop" command detection while speaking
+
 ## [1.1.1] - 2025-11-29
 
 ### Fixed
 
 - **GitHub Actions Build Workflow**: Fixed executable upload failure by replacing wildcard pattern with dynamic filename resolution
+- **PyInstaller Build Error**: Fixed `StopIteration` exception during build process
+  - Removed problematic `--copy-metadata pystray` flag that caused module discovery errors
+  - Simplified hidden imports to only essential PIL modules
+  - Added comprehensive error handling with detailed error messages
 - **PyInstaller Dependencies**: Fixed `ModuleNotFoundError` for `pystray` module in built executables
   - Made `pystray` import conditional (lazy loading) to prevent startup crashes
-  - Added comprehensive hidden imports: `pystray._win32`, `PIL._tkinter_finder`, `PIL.Image`, `PIL.ImageDraw`, `six`
-  - Added `--copy-metadata pystray` to ensure metadata is included
   - System tray functionality now gracefully handles missing pystray module
 
 ### Changed
 
 - Standardized executable naming to lowercase: `eleven_v{version}.exe`
 - Updated all build scripts to reflect lowercase naming convention
+- Improved build script error reporting and diagnostics
 
 ## [1.1.0] - 2025-11-29 - Enhanced GUI & Persistence
 
