@@ -1,5 +1,34 @@
 # Changelog
 
+## [1.2.0] - 2025-11-29 - Stability & Intelligence Update & Internationalization Update
+
+### Added
+
+- **Intelligent Folder Mapping**: New system to index all folders on the PC for instant search.
+  - New command: "Mapear carpetas" to start indexing.
+  - Database-backed search (< 0.1s response time).
+  - Smart filtering of system folders (Windows, Program Files, etc.).
+  - Interactive selection when multiple folders match (e.g., "Option 1: Documents in Users").
+- **Spatial Audio Feedback**: Replaced annoying beeps with a futuristic spatial activation sound.
+- **Microphone Thread Safety**: Implemented locking mechanism to prevent `context manager` errors.
+- **Full Internationalization (i18n)**:
+  - Complete support for English and Spanish (es-ES / en-US).
+  - Documentation (`README.md`) translated to English.
+  - Commands and responses adapt dynamically to the selected language in Settings.
+  - New `locales.py` module to manage translations.
+- **Bilingual Voice Commands**:
+  - "Map folders" / "Mapear carpetas"
+  - "Stop" / "Detente"
+  - "Sleep" / "Duérmete"
+  - "Shutdown" / "Apágate"
+
+### Fixed
+
+- **Critical Audio Crash**: Fixed `WinError 32` by using unique temporary filenames for TTS generation.
+- **Infinite Listening Loop**: Added smart pauses to prevent log spam and high CPU usage when background noise is present.
+- **"Stop" Command Logic**: "Detente" / "Stop" commands are now intercepted _before_ LLM processing, ensuring immediate silence without triggering web searches.
+- **Wake Word Sensitivity**: Adjusted energy threshold (400) and re-added "Once" variation to reduce false positives.
+
 ## [1.1.2] - 2025-11-29
 
 ### Added

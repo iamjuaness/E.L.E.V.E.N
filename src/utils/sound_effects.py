@@ -35,11 +35,29 @@ class SoundEffects:
         
         return pygame.sndarray.make_sound(audio)
 
+    def _generate_spatial_beep(self):
+        """Generate a futuristic activation sound"""
+        sample_rate = 44100
+        duration = 0.4
+        n_samples = int(sample_rate * duration)
+        t = np.linspace(0, duration, n_samples, False)
+        
+        # Sweep from 800Hz to 1200Hz
+        freq_sweep = np.linspace(800, 1200, n_samples)
+        tone = np.sin(2 * np.pi * freq_sweep * t)
+        
+        # Envelope
+        envelope = np.exp(-3 * t)
+        tone *= envelope
+        
+        audio = (tone * 32767 * 0.3).astype(np.int16)
+        return pygame.sndarray.make_sound(np.column_stack((audio, audio)))
+
     def play(self, sound_name):
         """
         Play a sound effect.
         Args:
-            sound_name (str): 'listening', 'processing', 'success', 'error'
+            sound_name (str): 'listening', 'processing', 'success', 'error', 'activated'
         """
         try:
             # Try to load from file first
@@ -49,10 +67,14 @@ class SoundEffects:
                 pygame.mixer.Sound(file_path).play()
             else:
                 # Fallback to synthesized sounds
-                if sound_name == "listening":
-                    self._generate_beep(880, 0.1).play()
+                if sound_name == "activated":
+                    self._generate_spatial_beep().play()
+                elif sound_name == "listening":
+                    # self._generate_beep(880, 0.1).play() # Disabled
+                    pass
                 elif sound_name == "processing":
-                    self._generate_beep(440, 0.05).play()
+                    # self._generate_beep(440, 0.05).play() # Disabled
+                    pass
                 elif sound_name == "success":
                     self._generate_beep(1200, 0.15).play()
                 elif sound_name == "error":

@@ -9,6 +9,15 @@ def build():
     
     print(f"Building {exe_name}...")
     
+    # Find customtkinter installation path
+    try:
+        import customtkinter
+        ctk_path = os.path.dirname(customtkinter.__file__)
+        print(f"Found customtkinter at: {ctk_path}")
+    except ImportError:
+        print("WARNING: customtkinter not found, assets may not be included")
+        ctk_path = None
+    
     # PyInstaller command - simplified to avoid StopIteration errors
     cmd = [
         "pyinstaller",
@@ -17,12 +26,18 @@ def build():
         "--windowed",
         "--name", exe_name,
         "--add-data", "src;src",
+        "--add-data", "src/brain;src/brain",
         # Only include essential hidden imports that PyInstaller can reliably find
         "--hidden-import", "PIL",
         "--hidden-import", "PIL.Image",
         "--hidden-import", "PIL.ImageDraw",
         "src/main.py"
     ]
+    
+    # Add customtkinter assets if found
+    if ctk_path and os.path.exists(ctk_path):
+        cmd.extend(["--add-data", f"{ctk_path};customtkinter"])
+        print("Added customtkinter assets to build")
     
     # Check for icon
     icon_path = "assets/eleven.ico"

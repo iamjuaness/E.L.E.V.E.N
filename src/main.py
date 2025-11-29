@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.config.settings import Settings
 from src.utils.logger import logger
 from src.gui.interface import SettingsGUI
+from src.config.locales import get_text, get_keywords
 
 def run_assistant():
     """
@@ -50,40 +51,42 @@ def run_assistant():
         # Main loop
         while True:
             try:
+                lang = Settings.LANGUAGE # Get current language for every iteration
+                
                 # 0. Wait for Wake Word
                 if not conversation_active:
-                    logger.info("Esperando wake word inicial...")
+                    logger.info("Waiting for wake word...")
                     if not wake_word.listen_for_wake_word():
                         continue
                     conversation_active = True
                     last_interaction = time.time()  # Reset timer on activation
-                    audio.speak("Activado. ¿En qué puedo ayudarte?")
+                    # Spatial sound
+                    audio.play_sound("activated")
+                    audio.speak(get_text("wake_response", lang))
                 else:
-                    logger.info("Escuchando comando continuo...")
-                
-                # 1. Wake up sound
-                audio.play_sound("listening")
+                    logger.info("Listening for command...")
                 
                 # 2. Listen for actual command
                 user_text = audio.listen()
                 if not user_text:
+                    time.sleep(0.2) # Prevent tight loop spam
                     continue
                 
                 # Check for sleep command BEFORE timeout
-                if any(word in user_text.lower() for word in ["duerme", "duérmete", "sleep", "descansa"]):
+                if any(word in user_text.lower() for word in get_keywords("sleep_words", lang)):
                     conversation_active = False
-                    audio.speak("Entendido. Me duermo.")
+                    audio.speak(get_text("sleep_response", lang))
                     continue
 
                 # Check for SHUTDOWN command
-                if any(word in user_text.lower() for word in ["apagar sistema", "apágate", "cerrar programa", "shutdown system", "terminate"]):
-                    audio.speak("Apagando sistemas. Hasta luego.")
+                if any(word in user_text.lower() for word in get_keywords("shutdown_words", lang)):
+                    audio.speak(get_text("shutdown_response", lang))
                     logger.info("Shutdown command received.")
                     os._exit(0) # Force exit
                 
-                # Check for SHOW GUI command (when running in headless mode)
-                if any(phrase in user_text.lower() for phrase in ["mostrar interfaz", "muestra la interfaz", "abre la configuración", "show interface", "open settings"]):
-                    audio.speak("Abriendo interfaz de configuración.")
+                # Check for SHOW GUI command
+                if any(phrase in user_text.lower() for phrase in get_keywords("gui_words", lang)):
+                    audio.speak(get_text("open_gui", lang))
                     logger.info("Show GUI command received.")
                     try:
                         import subprocess
@@ -100,16 +103,21 @@ def run_assistant():
                         
                         logger.info(f"Launching GUI with command: {cmd}")
                         subprocess.Popen(cmd)
-                        audio.speak("Interfaz abierta.")
+                        audio.speak(get_text("interface_opened", lang)) # Add this key if missing or use generic
                     except Exception as e:
                         logger.error(f"Error opening GUI: {e}")
-                        audio.speak("Lo siento, no pude abrir la interfaz.")
+                        audio.speak(get_text("gui_error", lang))
                     continue
                 
                 # Update interaction time AFTER receiving input
                 last_interaction = time.time()
                 
-                audio.play_sound("processing")
+                # Check for STOP command explicitly before LLM
+                if any(w in user_text.lower() for w in get_keywords("stop_words", lang)):
+                    audio.stop_speaking()
+                    audio.speak(get_text("stopped_response", lang))
+                    continue
+
                 logger.info(f"User said: {user_text}")
                 
                 # 2. Classify intent
@@ -127,46 +135,95 @@ def run_assistant():
                         logger.info(f"Executing LLM command: {cmd_name} with params: {params}")
                         if cmd_name == "open_app":
                             windows.open_app(params)
-                            response_text = f"Abriendo {params}"
+                            response_text = get_text("opening", lang, params)
                         elif cmd_name == "search_web":
                             response_text = browser.search_google(params)
                         elif cmd_name == "system_control":
                             if params == "volume_up":
                                 windows.volume_up()
-                                response_text = "Subiendo volumen"
+                                response_text = get_text("volume_up", lang)
                             elif params == "volume_down":
                                 windows.volume_down()
-                                response_text = "Bajando volumen"
+                                response_text = get_text("volume_down", lang)
                             elif params == "mute":
                                 windows.mute()
-                                response_text = "Silenciando"
+                                response_text = get_text("mute", lang)
                         elif cmd_name == "system_info":
                             response_text = sys_info.get_system_summary()
                         elif cmd_name == "analyze_screen":
                             # Vision capability
-                            prompt = params if params else "Describe lo que ves en mi pantalla."
-                            audio.speak("Déjame ver...")
+                            prompt = params if params else get_text("vision_prompt", lang)
+                            audio.speak(get_text("analyzing_screen", lang))
                             response_text = vision.analyze_screen(prompt)
                         elif cmd_name == "open_folder":
-                            response_text = file_manager.open_folder(params)
+                            result = file_manager.open_folder(params)
+                            
+                            # Check if requires interactive selection
+                            if isinstance(result, tuple) and result[1]:  # requires_selection = True
+                                message, _, options = result
+                                
+                                # Present options to user
+                                audio.speak(message)
+                                time.sleep(0.5)  # Brief pause
+                                
+                                for i, path in enumerate(options[:5], 1): # Limit to 5 options
+                                    # Extract just the folder name and parent for clarity
+                                    folder_name = os.path.basename(path)
+                                    parent_name = os.path.basename(os.path.dirname(path))
+                                    # Speak cleaner text: "Option X: Documents in Users"
+                                    audio.speak(get_text("option_prefix", lang, i, folder_name, parent_name))
+                                    time.sleep(0.3)
+                                
+                                # Ask for selection
+                                audio.speak(get_text("ask_selection", lang))
+                                selection_text = audio.listen()
+                                
+                                if selection_text:
+                                    # Try to parse number
+                                    import re
+                                    numbers = re.findall(r'\d+', selection_text)
+                                    if numbers:
+                                        try:
+                                            choice = int(numbers[0]) - 1
+                                            if 0 <= choice < len(options):
+                                                os.startfile(options[choice])
+                                                response_text = get_text("opening", lang, options[choice])
+                                            else:
+                                                response_text = get_text("invalid_selection", lang)
+                                        except ValueError:
+                                            response_text = get_text("invalid_selection", lang)
+                                    else:
+                                        response_text = get_text("invalid_selection", lang)
+                                else:
+                                    response_text = get_text("no_selection", lang)
+                            else:
+                                # Single result or error message
+                                response_text = result if isinstance(result, str) else result[0]
                         elif cmd_name == "create_folder":
                             # Parse location if provided
                             parts = params.split(" en ") if " en " in params else [params, None]
+                            if " in " in params: # English support
+                                parts = params.split(" in ")
                             response_text = file_manager.create_folder(parts[0], parts[1] if len(parts) > 1 else None)
                         elif cmd_name == "open_file":
                             response_text = file_manager.open_file(params)
+                        elif cmd_name == "map_folders":
+                            audio.speak(get_text("mapping_start", lang))
+                            total = file_manager.mapper.map_all_folders()
+                            response_text = get_text("mapping_end", lang, total)
                         else:
                             # Unknown LLM command
-                            response_text = "No estoy seguro de cómo ejecutar ese comando."
+                            response_text = get_text("error_generic", lang)
 
                     # 2. Fallback to Legacy/Keyword matching
                     else:
                         cmd = intent.get("keyword", "")
                         logger.info(f"Executing Legacy command: {cmd}")
                         
-                        if any(k in cmd for k in ["ver", "mira", "pantalla", "screen"]):
-                             audio.speak("Analizando pantalla...")
-                             response_text = vision.analyze_screen("Describe detalladamente qué hay en mi pantalla.")
+                        # Use English keywords for logic, but check against user text
+                        if any(k in cmd for k in ["ver", "mira", "pantalla", "screen", "see", "look"]):
+                             audio.speak(get_text("analyzing_screen", lang))
+                             response_text = vision.analyze_screen(get_text("vision_prompt", lang))
                         
                         elif any(k in cmd for k in ["abrir", "abre", "open"]):
                             target = user_text.replace("abrir", "").replace("abre", "").replace("open", "").strip()
@@ -176,7 +233,7 @@ def run_assistant():
                                 response_text = browser.open_url("youtube.com")
                             else:
                                 windows.open_app(target)
-                                response_text = f"Abriendo {target}"
+                                response_text = get_text("opening", lang, target)
                                 
                         elif any(k in cmd for k in ["buscar", "busca", "search"]):
                             query = user_text.replace("buscar", "").replace("busca", "").replace("search", "").strip()
@@ -185,20 +242,20 @@ def run_assistant():
                         elif "volumen" in cmd or "volume" in cmd:
                             if "subir" in user_text or "up" in user_text:
                                 windows.volume_up()
-                                response_text = "Subiendo volumen"
+                                response_text = get_text("volume_up", lang)
                             elif "bajar" in user_text or "down" in user_text:
                                 windows.volume_down()
-                                response_text = "Bajando volumen"
+                                response_text = get_text("volume_down", lang)
                                 
                         elif "sistema" in cmd or "system" in cmd:
                             response_text = sys_info.get_system_summary()
                             
-                        elif any(k in cmd for k in ["configurar", "ajustar", "humor", "sarcasmo", "sinceridad", "set"]):
+                        elif any(k in cmd for k in ["configurar", "ajustar", "humor", "sarcasmo", "sinceridad", "set", "adjust"]):
                             # Parse personality command
                             import re
                             traits = {
                                 "humor": "humor", "sarcasmo": "sarcasm", "sarcasm": "sarcasm",
-                                "sinceridad": "sincerity", "sincerity": "sincerity",
+                                "sinceridad": "sincerity", "sincerity": "sincerity", "honesty": "sincerity",
                                 "profesionalismo": "professionalism", "professionalism": "professionalism"
                             }
                             target_trait = None
@@ -214,9 +271,9 @@ def run_assistant():
                                 Settings.PERSONALITY[target_trait] = new_value
                                 llm.update_system_prompt()
                                 llm.reset_chat()
-                                response_text = f"Entendido. He ajustado mi {target_trait} al {new_value}%."
+                                response_text = f"OK. {target_trait} -> {new_value}%."
                             else:
-                                response_text = "No entendí qué parámetro ajustar."
+                                response_text = "Error."
                         
                         else:
                             # Fallback: keyword detected but no handler matched - use LLM
@@ -243,24 +300,37 @@ def run_assistant():
                     def monitor_interruption():
                         """Monitor for user interruptions while speaking"""
                         import time
+                        
+                        # Get stop words for current language
+                        stop_words = get_keywords("stop_words", lang)
+                        
                         while audio.is_speaking() and not interruption_detected.is_set():
-                            # Check for interruption every 0.1 seconds for faster response
-                            time.sleep(0.1)
+                            # OPTIMIZED: Check every 0.05s (was 0.1s) for faster response
+                            time.sleep(0.05)
                             interrupt_text = audio.recognizer.listen_for_interruption()
+                            
                             if interrupt_text:
-                                # Check for stop commands
-                                if any(word in interrupt_text for word in ["detente", "para", "stop", "cállate", "espera", "silencio"]):
-                                    logger.info("Stop command detected, halting speech")
-                                    audio.stop_speaking()
-                                    interruption_detected.set()
+                                # Check for stop commands with partial matching
+                                is_stop_command = False
+                                for stop_word in stop_words:
+                                    if stop_word in interrupt_text or interrupt_text in stop_word:
+                                        is_stop_command = True
+                                        logger.info(f"🛑 Stop command detected: '{interrupt_text}'")
+                                        audio.stop_speaking()
+                                        interruption_detected.set()
+                                        # FIX: Mark as interruption, not new command
+                                        new_command[0] = None 
+                                        break
+                                
+                                if is_stop_command:
                                     break
-                                else:
-                                    # New command while speaking
-                                    logger.info(f"New command while speaking: {interrupt_text}")
-                                    audio.stop_speaking()
-                                    new_command[0] = interrupt_text
-                                    interruption_detected.set()
-                                    break
+                                    
+                                # If not a stop command, it's a new command
+                                logger.info(f"New command while speaking: {interrupt_text}")
+                                audio.stop_speaking()
+                                new_command[0] = interrupt_text
+                                interruption_detected.set()
+                                break
                     
                     # Start monitoring in background
                     monitor_thread = Thread(target=monitor_interruption, daemon=True)
@@ -277,13 +347,14 @@ def run_assistant():
                     if new_command[0]:
                         user_text = new_command[0]
                         continue  # Go back to process the new command
+                    # If None (interruption), loop will continue to listen naturally
                 
             except KeyboardInterrupt:
                 logger.info("Interrupted by user")
                 break
             except Exception as e:
                 logger.error(f"Error in main loop: {e}")
-                audio.speak("Lo siento, ocurrió un error. Intenta de nuevo.")
+                audio.speak(get_text("error_generic", Settings.LANGUAGE))
                 
     except Exception as e:
         logger.critical(f"Critical error starting application: {e}")
@@ -340,4 +411,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

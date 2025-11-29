@@ -316,8 +316,16 @@ class SettingsGUI:
         logger.info("Restarting application...")
         if self.tray_icon:
             self.tray_icon.stop()
-        python = sys.executable
-        os.execl(python, python, *sys.argv)
+        
+        if getattr(sys, 'frozen', False):
+            # Running as compiled executable
+            exe_path = sys.executable
+            # Don't include sys.argv[0] as it's already the exe path
+            os.execl(exe_path, exe_path, *sys.argv[1:])
+        else:
+            # Running as Python script  
+            python = sys.executable
+            os.execl(python, python, *sys.argv)
         
     def hide_to_tray(self):
         """Hide window and show tray icon"""

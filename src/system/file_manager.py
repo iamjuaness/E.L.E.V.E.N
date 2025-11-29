@@ -4,6 +4,8 @@ from pathlib import Path
 from src.utils.logger import logger
 from src.config.settings import Settings
 
+from src.system.folder_mapper import FolderMapper
+
 class FileSystemManager:
     """
     Advanced file system operations with intelligent search.
@@ -20,13 +22,22 @@ class FileSystemManager:
             Path("D:/") if Path("D:/").exists() else None
         ]
         self.common_paths = [p for p in self.common_paths if p and p.exists()]
+        self.mapper = FolderMapper()
+        
+        # Start periodic update automatically
+        self.mapper.start_periodic_update()
         
     def search_folder(self, folder_name, max_depth=4):
         """
-        Search for a folder by name across common locations.
-        Returns the first match found.
+        Search for a folder by name.
+        Uses database mapping first, falls back to os.walk if empty.
         """
-        logger.info(f"Searching for folder: {folder_name}")
+        # Try DB first
+        matches = self.mapper.search_folders(folder_name)
+        if matches:
+            return matches[0]
+            
+        logger.info(f"Searching for folder (fallback): {folder_name}")
         folder_name_lower = folder_name.lower()
         
         for base_path in self.common_paths:
@@ -46,22 +57,66 @@ class FileSystemManager:
                 continue
                 
         return None
+    
+    def search_folder_all(self, folder_name, max_depth=4):
+        """
+        Search for ALL folders matching the name.
+        Uses database mapping for fast results.
+        """
+        # Try DB first (fast)
+        matches = self.mapper.search_folders(folder_name)
+        if matches:
+            return matches
+            
+        # Fallback to slow scan if DB empty
+        logger.info(f"Searching for all folders matching (fallback): {folder_name}")
+        folder_name_lower = folder_name.lower()
+        matches = []
+        
+        for base_path in self.common_paths:
+            try:
+                for root, dirs, _ in os.walk(base_path):
+                    depth = root[len(str(base_path)):].count(os.sep)
+                    if depth > max_depth:
+                        continue
+                        
+                    for dir_name in dirs:
+                        if folder_name_lower in dir_name.lower():
+                            full_path = os.path.join(root, dir_name)
+                            matches.append(full_path)
+                            
+                            if len(matches) >= 10:
+                                return matches
+            except (PermissionError, OSError):
+                continue
+        
+        return matches
         
     def open_folder(self, folder_name):
         """
-        Search and open a folder in Windows Explorer.
+        Search and open a folder, with interactive selection if multiple matches.
+        Returns tuple: (message, requires_selection, options)
         """
-        folder_path = self.search_folder(folder_name)
+        matches = self.search_folder_all(folder_name)
         
-        if folder_path:
+        if not matches:
+            return (f"No encontré ninguna carpeta llamada '{folder_name}'", False, [])
+        
+        if len(matches) == 1:
+            # Only one match, open it directly
             try:
-                os.startfile(folder_path)
-                return f"Abriendo carpeta: {folder_path}"
+                os.startfile(matches[0])
+                return (f"Abriendo carpeta: {matches[0]}", False, [])
             except Exception as e:
                 logger.error(f"Error opening folder: {e}")
-                return f"No pude abrir la carpeta: {e}"
-        else:
-            return f"No encontré ninguna carpeta llamada '{folder_name}'"
+                return (f"No pude abrir la carpeta: {e}", False, [])
+        
+        # Multiple matches - return for user selection
+        return (
+            f"Encontré {len(matches)} carpetas. ¿Cuál quieres abrir?",
+            True,
+            matches
+        )
             
     def create_folder(self, folder_name, location=None):
         """

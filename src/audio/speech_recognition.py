@@ -2,10 +2,13 @@ import speech_recognition as sr
 from src.config.settings import Settings
 from src.utils.logger import logger
 
+import threading
+
 class SpeechRecognizer:
     def __init__(self):
         self.recognizer = sr.Recognizer()
         self.microphone = sr.Microphone()
+        self._lock = threading.Lock()
         
         # Adjust for ambient noise
         with self.microphone as source:
@@ -15,6 +18,10 @@ class SpeechRecognizer:
 
     def listen(self):
         """Listen for audio input and return text"""
+        if not self._lock.acquire(blocking=False):
+            # If microphone is busy (e.g. interruption thread), skip
+            return None
+            
         try:
             with self.microphone as source:
                 logger.info("Listening...")
@@ -22,7 +29,6 @@ class SpeechRecognizer:
                 
             logger.info("Processing audio...")
             # Recognize speech using Google Speech Recognition (free tier)
-            # Note: For production, we might want to use a local model (Whisper) or Cloud API
             text = self.recognizer.recognize_google(audio, language=Settings.LANGUAGE)
             logger.info(f"Heard: {text}")
             return text.lower()
@@ -38,14 +44,19 @@ class SpeechRecognizer:
         except Exception as e:
             logger.error(f"Error in speech recognition: {e}")
             return None
+        finally:
+            self._lock.release()
     
     def listen_for_interruption(self):
-        """Quick listen to detect if user is trying to interrupt (non-blocking)"""
+        """Ultra-fast listen to detect interruptions"""
+        # Try to acquire lock, but don't block if main thread is using it
+        if not self._lock.acquire(blocking=False):
+            return None
+            
         try:
             with self.microphone as source:
-                # Increased timeout to 0.5s for better detection
-                # phrase_time_limit=3 allows slightly longer stop commands
-                audio = self.recognizer.listen(source, timeout=0.5, phrase_time_limit=3)
+                # OPTIMIZED: Reduced timeout for faster interruption detection
+                audio = self.recognizer.listen(source, timeout=0.2, phrase_time_limit=1)
                 
             # Try to recognize what was said
             text = self.recognizer.recognize_google(audio, language=Settings.LANGUAGE)
@@ -54,8 +65,9 @@ class SpeechRecognizer:
             
         except (sr.WaitTimeoutError, sr.UnknownValueError):
             return None
-        except Exception as e:
-            # Don't log every timeout/error to avoid spamming logs during monitoring
+        except Exception:
             return None
+        finally:
+            self._lock.release()
 
 

@@ -170,6 +170,7 @@ class LLMClient:
         - system_info(): Get CPU/RAM status
         - open_folder(folder_name): Search and open a folder
         - create_folder(folder_name, location): Create a folder (location optional)
+        - map_folders(): Scan and index all system folders (e.g., "mapear carpetas", "map folders", "update index")
         - open_file(file_name): Search and open a file
         - analyze_screen(prompt): Analyze screen content (e.g., "what is on my screen", "explain this error")
         

@@ -1,4 +1,5 @@
 import os
+import sys
 import sqlite3
 import json
 from dotenv import load_dotenv
@@ -8,7 +9,7 @@ load_dotenv()
 
 class Settings:
     # General
-    VERSION = "1.1.2"
+    VERSION = "1.2.0"
     ASSISTANT_NAME = os.getenv("ASSISTANT_NAME", "ELEVEN")
     LANGUAGE = os.getenv("LANGUAGE", "es-ES")
     
@@ -29,10 +30,18 @@ class Settings:
         "professionalism": 80
     }
     
-    # Paths
-    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    LOGS_DIR = os.path.join(os.path.dirname(BASE_DIR), "logs")
-    DB_PATH = os.path.join(BASE_DIR, "brain", "memory.db")
+    # Paths - Use AppData for persistence when running as .exe
+    if getattr(sys, 'frozen', False):
+        # Running as compiled executable - use AppData for persistence
+        APP_DATA_DIR = os.path.join(os.getenv('APPDATA'), 'eleven')
+        BASE_DIR = APP_DATA_DIR
+        LOGS_DIR = os.path.join(APP_DATA_DIR, "logs")
+        DB_PATH = os.path.join(APP_DATA_DIR, "brain", "memory.db")
+    else:
+        # Running as Python script - use project directory
+        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        LOGS_DIR = os.path.join(os.path.dirname(BASE_DIR), "logs")
+        DB_PATH = os.path.join(BASE_DIR, "brain", "memory.db")
     
     # Safety
     SAFE_MODE = os.getenv("SAFE_MODE", "true").lower() == "true"
@@ -45,6 +54,11 @@ class Settings:
     def init_db():
         """Initialize settings table"""
         try:
+            # Ensure the brain directory exists
+            db_dir = os.path.dirname(Settings.DB_PATH)
+            if not os.path.exists(db_dir):
+                os.makedirs(db_dir)
+                
             conn = Settings._get_db_connection()
             cursor = conn.cursor()
             cursor.execute('''
