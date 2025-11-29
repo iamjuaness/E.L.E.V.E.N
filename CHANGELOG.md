@@ -1,5 +1,19 @@
-- Fixed `ModuleNotFoundError` for `src` imports.
-- Improved application launching logic for Windows.
+# Changelog
+
+## [1.1.1] - 2025-11-29
+
+### Fixed
+
+- **GitHub Actions Build Workflow**: Fixed executable upload failure by replacing wildcard pattern with dynamic filename resolution
+- **PyInstaller Dependencies**: Added comprehensive hidden imports for `pystray` module to fix `ModuleNotFoundError` in built executables
+  - Added `pystray._win32` for Windows-specific functionality
+  - Added PIL dependencies: `PIL._tkinter_finder`, `PIL.Image`, `PIL.ImageDraw`
+  - Added `--collect-all pystray` to ensure all pystray files are included
+
+### Changed
+
+- Standardized executable naming to lowercase: `eleven_v{version}.exe`
+- Updated all build scripts to reflect lowercase naming convention
 
 ## [1.1.0] - 2025-11-29 - Enhanced GUI & Persistence
 
@@ -18,6 +32,11 @@
 - **GUI Architecture**: Refactored to run on the main thread for stability.
 - **Console Output**: Redirected logs to a new "Consola" tab in the GUI.
 - **Speech Interruption**: Optimized detection speed for "stop" commands.
+
+### Fixed
+
+- Fixed `ModuleNotFoundError` for `src` imports.
+- Improved application launching logic for Windows.
 
 ## [0.1.0] - 2025-11-28 - Initial Release
 

@@ -1,5 +1,5 @@
 # Build ELEVEN executable
-Write-Host "Building ELEVEN.exe..." -ForegroundColor Cyan
+Write-Host "Building eleven.exe..." -ForegroundColor Cyan
 Write-Host ""
 
 # Check if PyInstaller is installed
@@ -16,8 +16,9 @@ python build.py
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
     Write-Host "Build successful!" -ForegroundColor Green
-    Write-Host "Executable location: dist\ELEVEN.exe" -ForegroundColor Green
-} else {
+    Write-Host "Executable location: dist\eleven.exe" -ForegroundColor Green
+}
+else {
     Write-Host ""
     Write-Host "Build failed!" -ForegroundColor Red
 }

@@ -17,7 +17,12 @@ def build():
         "--name", exe_name,
         "--add-data", "src;src",
         "--hidden-import", "pystray",
+        "--hidden-import", "pystray._win32",
         "--hidden-import", "PIL",
+        "--hidden-import", "PIL._tkinter_finder",
+        "--hidden-import", "PIL.Image",
+        "--hidden-import", "PIL.ImageDraw",
+        "--collect-all", "pystray",
         "src/main.py"
     ]
     

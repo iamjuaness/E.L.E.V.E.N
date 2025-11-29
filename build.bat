@@ -1,5 +1,5 @@
 @echo off
-echo Building ELEVEN.exe...
+echo Building eleven.exe...
 echo.
 
 REM Install PyInstaller if not present
@@ -11,7 +11,7 @@ if errorlevel 1 (
 
 REM Build the executable
 echo Building executable with PyInstaller...
-pyinstaller ELEVEN.spec
+pyinstaller eleven.spec
 
 if errorlevel 1 (
     echo.
@@ -22,6 +22,6 @@ if errorlevel 1 (
 
 echo.
 echo Build successful!
-echo Executable location: dist\ELEVEN.exe
+echo Executable location: dist\eleven.exe
 echo.
 pause
