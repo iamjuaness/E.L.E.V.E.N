@@ -4,7 +4,7 @@ from src.config.settings import Settings
 
 def build():
     version = Settings.VERSION
-    exe_name = f"ELEVEN_v{version}"
+    exe_name = f"eleven_v{version}"
     
     print(f"Building {exe_name}...")
     
